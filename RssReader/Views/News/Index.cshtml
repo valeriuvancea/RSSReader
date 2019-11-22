@@ -1,0 +1,125 @@
+﻿@model RssReader.Models.RSSChannelModel
+@{
+    ViewData["Title"] = "News";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<style>
+    table {
+        font-family: arial, sans-serif;
+        border-collapse: collapse;
+        width: 100%;
+    }
+
+    td, th {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+    }
+
+    tr:nth-child(even) {
+        background-color: #dddddd;
+    }
+</style>
+
+<center><h1>News</h1></center>
+
+<form method="post">
+    <label>
+        RSS XML Link
+    </label>
+    <input type="url" name="link" id="link" placeholder="https://example.com/rssnews.xml" style="width:70%" value="@ViewData["Link"]" />
+    <input type="submit" value="Get News" />
+</form>
+
+<label>Sort By:</label>
+<select id="sort" onchange="sortTable()">
+    <option value="titleAsc">Title Asc</option>
+    <option value="titleDsc">Title Dsc</option>
+    <option value="dateAsc">Publication Date Asc</option>
+    <option value="dateDsc">Publication Date Dsc</option>
+</select>
+
+@switch (Model.httpWorkerError)
+{
+    case RssReader.Helpers.HTTPWorkerError.NoError:
+        <table id="newsTable">
+            <tr>
+                <th>Title</th>
+                <th>Publication Date</th>
+                <th>Description</th>
+            </tr>
+            @{ foreach (RssReader.Models.NewsModel news in Model.NewsArray)
+                {
+                    <tr>
+                        <td>
+                            <a href="@news.Link" target="_blank">
+                                @news.Title
+                            </a>
+                        </td>
+                        <td>@news.PublicationDate</td>
+                        <td>@news.Description</td>
+                    </tr>
+                }
+            }
+        </table>
+        break;
+    case RssReader.Helpers.HTTPWorkerError.EmptyHttpResponse:
+        <h1>There are no news</h1>
+        break;
+    case RssReader.Helpers.HTTPWorkerError.InvalidRSSXML:
+        <h1>The provided link is not a valid RSS XML</h1>
+        break;
+
+}
+
+<script>
+    function sortTable() {
+        var table, rows, i, x, y, notOrdered, orderType;
+        table = document.getElementById("newsTable");
+        orderType = document.getElementById("sort").value;
+        notOrdered = true;
+        while (notOrdered) {
+            notOrdered = false;
+            rows = table.rows;
+            for (i = 1; i < (rows.length - 1); i++) {
+                switch (orderType) {
+                    case "titleAsc":
+                    case "titleDsc":
+                        x = rows[i].getElementsByTagName("a")[0].innerHTML.toLowerCase();
+                        y = rows[i + 1].getElementsByTagName("a")[0].innerHTML.toLowerCase();
+                        break;
+                    case "dateAsc":
+                    case "dateDsc":
+                        x = new Date(rows[i].getElementsByTagName("TD")[1].innerHTML.toLowerCase());
+                        y = new Date(rows[i + 1].getElementsByTagName("TD")[1].innerHTML.toLowerCase());
+                        break;
+                    default:
+                        return;
+                }
+
+                switch (orderType) {
+                    case "titleAsc":
+                    case "dateAsc":
+                        if (x > y) {
+                            rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                            notOrdered = true;
+                        }
+                        break;
+                    case "titleDsc":
+                    case "dateDsc":
+                        if (x < y) {
+                            rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                            notOrdered = true;
+                        }
+                        break;
+                }
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        sortTable();
+    }, false);
+</script>
+
+
